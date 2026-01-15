@@ -19,17 +19,20 @@ mla_qk_dim = 192
 mla_v_dim = 192
 mla_head_q = 128
 mla_head_kv = 128
-
 dytpe = torch.bfloat16
 device = "cuda:0"
 
 B = 2
 
 
-def generate_rowwise_permutations(M,N):
-    noise = torch.rand(M, N, device=device)
-    result = torch.argsort(noise, dim=1)
-    return result.to(torch.int32)
+def generate_triangular_permutations(B, M, N, device='cpu'):
+    noise = torch.rand(B, M, N, device=device)
+    result = torch.argsort(noise, dim=-1).to(torch.int32)
+    mask = torch.tril(torch.ones((M, N), device=device, dtype=torch.bool))
+    
+    result = torch.where(mask, result, torch.tensor(-1 * B * M, dtype=torch.int32, device=device))
+    
+    return result.view(-1 , N).contiguous()
 
 def mock_data(B, S, topK):
     
@@ -51,7 +54,7 @@ def mock_data(B, S, topK):
     weights = torch.randn(BS, index_head_q, dtype=torch.float32, device=device)
     
     # generate random index
-    index = generate_rowwise_permutations(B*S, topK)
+    index = generate_triangular_permutations(B, S, topK)
     
     return dsa_q, dsa_k,index_q,index_k, mla_q,mla_k, mla_v, seq_offsets, weights, index
 
