@@ -25,7 +25,7 @@ device = "cuda:0"
 B = 2
 
 
-def generate_triangular_permutations(B, M, N, device='cpu'):
+def generate_triangular_permutations(B, M, N):
     noise = torch.rand(B, M, N, device=device)
     result = torch.argsort(noise, dim=-1).to(torch.int32)
     mask = torch.tril(torch.ones((M, N), device=device, dtype=torch.bool))
